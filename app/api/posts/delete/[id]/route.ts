@@ -5,7 +5,7 @@ import Post from '@/models/Post';
 
 // Extraer el ID del post desde la URL
 function extractPostIdFromUrl(pathname: string): string | null {
-  const match = pathname.match(/\/api\/posts\/([^/]+)$/);
+  const match = pathname.match(/\/api\/posts\/delete\/([^/]+)$/);
   return match?.[1] ?? null;
 }
 

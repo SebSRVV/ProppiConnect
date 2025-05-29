@@ -32,6 +32,8 @@ export default function PostPage() {
   const [commentText, setCommentText] = useState('');
   const [user, setUser] = useState<{ username: string } | null>(null);
   const [feedback, setFeedback] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -44,48 +46,71 @@ export default function PostPage() {
       }
     }
 
-    // Incrementar vistas
-    fetch(`/api/posts/views/${id}`, { method: 'POST' });
+    const fetchData = async () => {
+      try {
+        await fetch(`/api/posts/views/${id}`, { method: 'POST' });
 
-    // Obtener post
-    fetch(`/api/posts/${id}`)
-      .then(res => res.json())
-      .then(data => {
-        setPost(data);
-      })
-      .catch(console.error);
+        const [postRes, commentsRes] = await Promise.all([
+          fetch(`/api/posts/${id}`),
+          fetch(`/api/posts/${id}/comments`),
+        ]);
 
-    // Obtener comentarios
-    fetch(`/api/posts/${id}/comments`)
-      .then(res => res.json())
-      .then(data => {
-        setComments(data);
-      })
-      .catch(console.error);
+        if (!postRes.ok) throw new Error('Error al cargar la publicación');
+        if (!commentsRes.ok) throw new Error('Error al cargar comentarios');
+
+        const postData = await postRes.json();
+        const commentData = await commentsRes.json();
+
+        setPost(postData);
+        setComments(commentData);
+      } catch (err: any) {
+        console.error(err);
+        setError(err.message || 'Ocurrió un error');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, [id]);
 
   const handleComment = async () => {
     const token = localStorage.getItem('token');
     if (!token || !commentText.trim()) return;
 
-    const res = await fetch(`/api/posts/${id}/comments`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ text: commentText }),
-    });
+    try {
+      const res = await fetch(`/api/posts/${id}/comments`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ text: commentText }),
+      });
 
-    const newComment = await res.json();
-    setComments((prev) => [...prev, newComment]);
-    setCommentText('');
-    setFeedback('✅ Comentario enviado');
-    setTimeout(() => setFeedback(''), 2000);
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Error al comentar');
+      }
+
+      const newComment = await res.json();
+      setComments((prev) => [...prev, newComment]);
+      setCommentText('');
+      setFeedback('✅ Comentario enviado');
+      setTimeout(() => setFeedback(''), 2000);
+    } catch (err: any) {
+      console.error(err);
+      setFeedback(`❌ ${err.message}`);
+      setTimeout(() => setFeedback(''), 3000);
+    }
   };
 
-  if (!post) {
+  if (loading) {
     return <p className="text-white text-center mt-20 animate-pulse">Cargando publicación...</p>;
+  }
+
+  if (error || !post) {
+    return <p className="text-red-400 text-center mt-20">⚠️ {error || 'Publicación no encontrada.'}</p>;
   }
 
   return (
@@ -98,7 +123,7 @@ export default function PostPage() {
         ← Volver al inicio
       </button>
 
-      {/* Sección 1: Vista del post */}
+      {/* Publicación */}
       <div className="bg-[#161b22] border border-[#2d333b] p-5 rounded-lg hover:bg-[#1b1f27] transition shadow-sm">
         <div className="flex items-center gap-3 mb-3">
           <div className="w-10 h-10 rounded-full bg-[#3c3f44] text-white font-bold flex items-center justify-center text-sm">
@@ -129,10 +154,9 @@ export default function PostPage() {
         </div>
       </div>
 
-      {/* Sección 2: Comentarios existentes */}
+      {/* Comentarios */}
       <div className="bg-[#161b22] border border-[#2d333b] p-5 rounded-lg shadow">
         <h2 className="text-lg font-bold mb-4">Comentarios</h2>
-
         {comments.length === 0 ? (
           <p className="text-sm text-[#8b949e] italic">Aún no hay comentarios.</p>
         ) : (
@@ -148,7 +172,7 @@ export default function PostPage() {
         )}
       </div>
 
-      {/* Sección 3: Comentar */}
+      {/* Agregar comentario */}
       <div className="bg-[#161b22] border border-[#2d333b] p-5 rounded-lg shadow">
         <h2 className="text-lg font-bold mb-4">Agregar comentario</h2>
 
@@ -168,7 +192,9 @@ export default function PostPage() {
               >
                 Comentar
               </button>
-              {feedback && <span className="text-sm text-green-400">{feedback}</span>}
+              {feedback && <span className={`text-sm ${feedback.startsWith('❌') ? 'text-red-400' : 'text-green-400'}`}>
+                {feedback}
+              </span>}
             </div>
           </>
         ) : (
