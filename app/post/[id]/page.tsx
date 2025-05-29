@@ -44,13 +44,22 @@ export default function PostPage() {
       }
     }
 
+    // Incrementar vistas
     fetch(`/api/posts/views/${id}`, { method: 'POST' });
 
+    // Obtener post
     fetch(`/api/posts/${id}`)
       .then(res => res.json())
       .then(data => {
         setPost(data);
-        setComments(data.commentsList || []);
+      })
+      .catch(console.error);
+
+    // Obtener comentarios
+    fetch(`/api/posts/${id}/comments`)
+      .then(res => res.json())
+      .then(data => {
+        setComments(data);
       })
       .catch(console.error);
   }, [id]);
