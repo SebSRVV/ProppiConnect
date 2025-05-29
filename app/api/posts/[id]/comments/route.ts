@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import type { NextApiRequest } from 'next';
+
 import dbConnect from '@/lib/mongodb';
 import Comment from '@/models/Comment';
 import Post from '@/models/Post';
@@ -8,7 +10,7 @@ import mongoose from 'mongoose';
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
   await dbConnect();
 
@@ -24,7 +26,7 @@ export async function POST(
     return NextResponse.json({ error: 'Token inválido' }, { status: 401 });
   }
 
-  const postId = params.id;
+  const { id: postId } = context.params;
   const { text } = await req.json();
 
   if (!text || !postId) {
@@ -55,12 +57,12 @@ export async function POST(
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: { id: string } }
 ) {
   await dbConnect();
 
   try {
-    const comments = await Comment.find({ postId: params.id }).sort({ createdAt: 1 });
+    const comments = await Comment.find({ postId: context.params.id }).sort({ createdAt: 1 });
     return NextResponse.json(comments);
   } catch (error) {
     console.error('Error al cargar comentarios:', error);
