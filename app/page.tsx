@@ -83,8 +83,8 @@ export default function HomePage() {
           <h3 className="font-bold text-base mb-2">Qué está pasando</h3>
           <ul className="space-y-2 text-gray-700">
             <li><span className="text-gray-500">Tendencia - Tecnología</span><br />La IA</li>
-            <li><span className="text-gray-500">Tendencia - Deportes</span><br />Renato Tapia</li>
-            <li><span className="text-gray-500">Tendencia - Entretenimiento</span><br />#LaCasaDeLosFamososCol2</li>
+            <li><span className="text-gray-500">Tendencia - Deportes</span><br />Jugador de Futbol</li>
+            <li><span className="text-gray-500">Tendencia - Entretenimiento</span><br />#SebRVV</li>
             <li className="text-[#1d9bf0] cursor-pointer">Mostrar más</li>
           </ul>
         </div>
