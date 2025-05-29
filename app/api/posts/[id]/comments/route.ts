@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import type { NextApiRequest } from 'next';
 
 import dbConnect from '@/lib/mongodb';
 import Comment from '@/models/Comment';
@@ -8,11 +7,19 @@ import Notification from '@/models/Notification';
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
 
-export async function POST(
-  req: NextRequest,
-  context: { params: { id: string } }
-) {
+// Helper para extraer el ID desde la URL
+function extractPostIdFromUrl(url: string): string | null {
+  const match = url.match(/\/api\/posts\/([^/]+)\/comments/);
+  return match?.[1] ?? null;
+}
+
+export async function POST(req: NextRequest) {
   await dbConnect();
+
+  const postId = extractPostIdFromUrl(req.nextUrl.pathname);
+  if (!postId) {
+    return NextResponse.json({ error: 'ID de post inválido' }, { status: 400 });
+  }
 
   const token = req.headers.get('authorization')?.split(' ')[1];
   if (!token) {
@@ -21,16 +28,17 @@ export async function POST(
 
   let decoded: { id: string; username: string };
   try {
-    decoded = jwt.verify(token, process.env.JWT_SECRET!) as { id: string; username: string };
+    decoded = jwt.verify(token, process.env.JWT_SECRET!) as {
+      id: string;
+      username: string;
+    };
   } catch {
     return NextResponse.json({ error: 'Token inválido' }, { status: 401 });
   }
 
-  const { id: postId } = context.params;
   const { text } = await req.json();
-
-  if (!text || !postId) {
-    return NextResponse.json({ error: 'Datos incompletos' }, { status: 400 });
+  if (!text) {
+    return NextResponse.json({ error: 'Texto requerido' }, { status: 400 });
   }
 
   const newComment = await Comment.create({
@@ -55,14 +63,16 @@ export async function POST(
   return NextResponse.json(newComment);
 }
 
-export async function GET(
-  _req: NextRequest,
-  context: { params: { id: string } }
-) {
+export async function GET(req: NextRequest) {
   await dbConnect();
 
+  const postId = extractPostIdFromUrl(req.nextUrl.pathname);
+  if (!postId) {
+    return NextResponse.json({ error: 'ID de post inválido' }, { status: 400 });
+  }
+
   try {
-    const comments = await Comment.find({ postId: context.params.id }).sort({ createdAt: 1 });
+    const comments = await Comment.find({ postId }).sort({ createdAt: 1 });
     return NextResponse.json(comments);
   } catch (error) {
     console.error('Error al cargar comentarios:', error);

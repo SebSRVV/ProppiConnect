@@ -1,17 +1,18 @@
-// app/api/posts/by-username/[username]/route.ts
-
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import Post from '@/models/Post';
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: { username: string } }
-) {
+// Extraer username desde la URL
+function extractUsernameFromUrl(pathname: string): string | null {
+  const match = pathname.match(/\/api\/posts\/by-username\/([^/]+)$/);
+  return match?.[1] ?? null;
+}
+
+export async function GET(req: NextRequest) {
   await dbConnect();
 
   try {
-    const username = params.username;
+    const username = extractUsernameFromUrl(req.nextUrl.pathname);
 
     if (!username) {
       return NextResponse.json({ error: 'Username requerido' }, { status: 400 });

@@ -1,14 +1,22 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
-import { User } from '@/models/user';
+import { User } from '@/models/User';
 
-export async function GET(
-  req: Request,
-  { params }: { params: { username: string } }
-) {
+// Helper para extraer el username desde la URL
+function extractUsernameFromUrl(pathname: string): string | null {
+  const match = pathname.match(/\/api\/users\/([^/]+)$/);
+  return match?.[1] ?? null;
+}
+
+export async function GET(req: NextRequest) {
   await dbConnect();
 
-  const user = await User.findOne({ username: params.username })
+  const username = extractUsernameFromUrl(req.nextUrl.pathname);
+  if (!username) {
+    return NextResponse.json({ error: 'Nombre de usuario inválido' }, { status: 400 });
+  }
+
+  const user = await User.findOne({ username })
     .select('username bio avatarUrl');
 
   if (!user) {
