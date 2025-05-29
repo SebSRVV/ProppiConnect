@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
-import { User } from '@/models/User';
+import { User } from '@/models/user';
 
 export async function GET(
   req: Request,
