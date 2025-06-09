@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
-import Post from '@/models/Post';
+import { Post } from '@/models/Post';
 
 // Extraer username desde la URL
 function extractUsernameFromUrl(pathname: string): string | null {

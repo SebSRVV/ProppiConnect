@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
   }
 
   const token = auth.split(' ')[1];
-  let userId;
+  let userId: string;
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET!) as { id: string };
@@ -22,7 +22,11 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const notifications = await Notification.find({ userId }).sort({ createdAt: -1 }).limit(50);
+    const notifications = await Notification.find({ userId })
+      .sort({ createdAt: -1 })
+      .limit(100) // Puedes quitar esto si quieres todas sin límite
+      .lean();
+
     return NextResponse.json(notifications);
   } catch (err) {
     return NextResponse.json({ error: 'Error al obtener notificaciones' }, { status: 500 });

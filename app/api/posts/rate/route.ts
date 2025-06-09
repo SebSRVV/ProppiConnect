@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import dbConnect from '@/lib/mongodb';
 import Rating from '@/models/Rating';
-import Post from '@/models/Post';
+import { Post } from '@/models/Post';
 import Notification from '@/models/Notification';
 
 export async function POST(req: NextRequest) {

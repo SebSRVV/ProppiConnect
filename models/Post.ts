@@ -6,32 +6,51 @@ export interface IRating {
 }
 
 export interface IPost extends Document {
-  userId: Types.ObjectId;
-  username?: string; // opcional cacheado
+  authorId: Types.ObjectId;
+  username?: string; // opcionalmente cacheado
   content: string;
   image?: string;
   views: number;
-  rating: number; // promedio actual
-  ratings: IRating[]; // historial de votaciones
+  rating: number;
+  ratings: IRating[];
   comments: number;
   createdAt: Date;
+  updatedAt: Date;
 }
 
-const RatingSchema = new Schema<IRating>({
-  userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-  value: { type: Number, min: 1, max: 12, required: true },
-}, { _id: false });
+const RatingSchema = new Schema<IRating>(
+  {
+    userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    value: { type: Number, min: 1, max: 12, required: true },
+  },
+  { _id: false }
+);
 
-const PostSchema = new Schema<IPost>({
-  userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
-  username: { type: String }, // opcionalmente cacheamos
-  content: { type: String, required: true },
-  image: { type: String },
-  views: { type: Number, default: 0 },
-  rating: { type: Number, default: 0 }, // promedio
-  ratings: { type: [RatingSchema], default: [] }, // usuarios que han votado
-  comments: { type: Number, default: 0 }, // total de comentarios
-  createdAt: { type: Date, default: Date.now },
-});
+const PostSchema = new Schema<IPost>(
+  {
+    authorId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    username: { type: String },
+    content: {
+      type: String,
+      required: true,
+      minlength: 1,
+      maxlength: 1000,
+      trim: true,
+    },
+    image: { type: String },
+    views: { type: Number, default: 0 },
+    rating: { type: Number, default: 0 },
+    ratings: { type: [RatingSchema], default: [] },
+    comments: { type: Number, default: 0 },
+  },
+  {
+    timestamps: true, // agrega createdAt y updatedAt automáticamente
+  }
+);
 
-export default mongoose.models.Post || mongoose.model<IPost>('Post', PostSchema);
+// Indexes para mejorar rendimiento de búsquedas
+PostSchema.index({ createdAt: -1 });
+PostSchema.index({ authorId: 1 });
+
+export const Post =
+  mongoose.models.Post || mongoose.model<IPost>('Post', PostSchema);

@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-
 import dbConnect from '@/lib/mongodb';
 import Comment from '@/models/Comment';
-import Post from '@/models/Post';
+import { Post } from '@/models/Post';
 import Notification from '@/models/Notification';
 import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
 
-// Helper para extraer el ID desde la URL
+// Extraer ID del post desde la URL
 function extractPostIdFromUrl(url: string): string | null {
   const match = url.match(/\/api\/posts\/([^/]+)\/comments/);
   return match?.[1] ?? null;
@@ -37,10 +36,11 @@ export async function POST(req: NextRequest) {
   }
 
   const { text } = await req.json();
-  if (!text) {
+  if (!text || typeof text !== 'string') {
     return NextResponse.json({ error: 'Texto requerido' }, { status: 400 });
   }
 
+  // Crear comentario
   const newComment = await Comment.create({
     postId: new mongoose.Types.ObjectId(postId),
     userId: decoded.id,
@@ -48,12 +48,14 @@ export async function POST(req: NextRequest) {
     text,
   });
 
+  // Aumentar contador de comentarios
   await Post.findByIdAndUpdate(postId, { $inc: { comments: 1 } });
 
+  // Crear notificación al autor (si no es el mismo usuario)
   const post = await Post.findById(postId);
-  if (post && post.userId.toString() !== decoded.id) {
+  if (post && post.authorId?.toString() !== decoded.id) {
     await Notification.create({
-      userId: post.userId,
+      userId: post.authorId,
       type: 'comment',
       message: `${decoded.username} comentó en tu publicación.`,
       read: false,

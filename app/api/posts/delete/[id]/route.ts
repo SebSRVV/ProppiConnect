@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 import dbConnect from '@/lib/mongodb';
-import Post from '@/models/Post';
+import { Post } from '@/models/Post';
 
 // Extraer el ID del post desde la URL
 function extractPostIdFromUrl(pathname: string): string | null {

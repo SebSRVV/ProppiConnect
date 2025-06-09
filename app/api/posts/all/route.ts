@@ -1,7 +1,7 @@
 // app/api/posts/all/route.ts
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
-import Post from '@/models/Post';
+import { Post } from '@/models/Post';
 
 export async function GET() {
   try {

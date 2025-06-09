@@ -3,8 +3,17 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { jwtDecode } from 'jwt-decode';
-import { HiArrowLeft } from 'react-icons/hi';
-import { FaRegCommentDots, FaStar, FaUserPlus } from 'react-icons/fa6';
+import {
+  HiOutlineCheckCircle,
+  HiOutlineBellAlert,
+} from 'react-icons/hi2';
+import {
+  FaRegCommentDots,
+  FaStar,
+  FaUserPlus,
+} from 'react-icons/fa6';
+import { LeftSidebar } from '@/components/LeftSidebar';
+import { RightSidebar } from '@/components/RightSidebar';
 
 interface DecodedToken {
   id: string;
@@ -25,6 +34,8 @@ export default function NotificationsPage() {
   const router = useRouter();
   const [user, setUser] = useState<DecodedToken | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [marking, setMarking] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -34,21 +45,15 @@ export default function NotificationsPage() {
       const decoded = jwtDecode<DecodedToken>(token);
       if (decoded.exp * 1000 > Date.now()) {
         setUser(decoded);
-
-        // 🔗 Llamada real al backend
         fetch('/api/notifications', {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         })
           .then((res) => res.json())
           .then((data) => {
-            if (Array.isArray(data)) {
-              setNotifications(data);
-            } else {
-              console.error('Error al cargar notificaciones', data);
-            }
-          });
+            if (Array.isArray(data)) setNotifications(data);
+            else console.error('Error al cargar notificaciones', data);
+          })
+          .finally(() => setLoading(false));
       } else {
         localStorage.removeItem('token');
         router.push('/login');
@@ -58,6 +63,24 @@ export default function NotificationsPage() {
       router.push('/login');
     }
   }, []);
+
+  const handleMarkAllAsRead = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    setMarking(true);
+    const res = await fetch('/api/notifications', {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (res.ok) {
+      setNotifications((prev) =>
+        prev.map((n) => ({ ...n, read: true }))
+      );
+    }
+    setMarking(false);
+  };
 
   const renderIcon = (type: Notification['type']) => {
     switch (type) {
@@ -70,35 +93,56 @@ export default function NotificationsPage() {
     }
   };
 
+  const unreadCount = notifications.filter((n) => !n.read).length;
+
   return (
-    <main className="max-w-2xl mx-auto p-6 text-[#f0f6fc]">
-      <div className="flex items-center mb-6">
-        <button onClick={() => router.back()} className="text-[#8b949e] hover:text-[#1d9bf0] mr-4">
-          <HiArrowLeft size={22} />
-        </button>
-        <h1 className="text-2xl font-bold">Notificaciones</h1>
-      </div>
+    <main className="flex min-h-screen bg-[#0e1117] text-[#f0f6fc]">
+      <LeftSidebar />
 
-      <div className="space-y-4">
-        {notifications.map((n) => (
-          <div
-            key={n._id}
-            className={`flex items-start gap-4 p-4 rounded-lg border border-[#2d333b] bg-[#161b22] ${
-              !n.read ? 'bg-opacity-80' : ''
-            }`}
-          >
-            <div className="mt-1">{renderIcon(n.type)}</div>
-            <div className="flex-1">
-              <p className="text-sm">{n.message}</p>
-              <p className="text-xs text-[#8b949e]">{new Date(n.createdAt).toLocaleString()}</p>
-            </div>
-          </div>
-        ))}
+      <section className="flex-1 max-w-3xl mx-auto px-6 py-10 space-y-8">
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            <HiOutlineBellAlert className="text-[#1d9bf0]" />
+            Notificaciones
+          </h1>
 
-        {notifications.length === 0 && (
+          {unreadCount > 0 && (
+            <button
+              onClick={handleMarkAllAsRead}
+              disabled={marking}
+              className="text-sm text-[#1d9bf0] hover:underline flex items-center gap-1"
+            >
+              <HiOutlineCheckCircle />
+              Marcar todas como leídas
+            </button>
+          )}
+        </div>
+
+        {loading ? (
+          <p className="text-center text-[#8b949e]">Cargando notificaciones...</p>
+        ) : notifications.length === 0 ? (
           <p className="text-center text-[#8b949e] mt-20">No tienes notificaciones aún.</p>
+        ) : (
+          <div className="space-y-4">
+            {notifications.map((n) => (
+              <div
+                key={n._id}
+                className={`flex items-start gap-4 p-4 rounded-lg border border-[#2d333b] transition ${
+                  n.read ? 'bg-[#161b22]' : 'bg-[#1d2a3a] shadow-md'
+                }`}
+              >
+                <div className="mt-1">{renderIcon(n.type)}</div>
+                <div className="flex-1">
+                  <p className="text-sm">{n.message}</p>
+                  <p className="text-xs text-[#8b949e]">{new Date(n.createdAt).toLocaleString()}</p>
+                </div>
+              </div>
+            ))}
+          </div>
         )}
-      </div>
+      </section>
+
+      <RightSidebar />
     </main>
   );
 }
