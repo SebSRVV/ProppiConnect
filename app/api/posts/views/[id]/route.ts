@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import { Post } from '@/models/Post';
+import mongoose from 'mongoose';
 
-export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
+export const dynamic = 'force-dynamic';
+
+export async function POST(req: NextRequest) {
   await dbConnect();
 
-  const postId = params.id;
-  if (!postId) {
+  const url = new URL(req.url);
+  const postId = url.pathname.split('/').pop(); // Extrae el ID desde la URL
+
+  if (!postId || !mongoose.Types.ObjectId.isValid(postId)) {
     return NextResponse.json({ error: 'ID de post inválido' }, { status: 400 });
   }
 
